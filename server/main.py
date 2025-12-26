@@ -1,8 +1,8 @@
 # API routes
 
 from fastapi import FastAPI, HTTPException
-from models import AgentRegistration, AgentHeartbeat
-from state import heartbeat, register_agent
+from models import AgentRegistration, AgentHeartbeat, TaskCreate, ReportSubmit
+from state import heartbeat, register_agent, create_task, submit_report
 
 app = FastAPI()
 
@@ -21,5 +21,30 @@ def agent_heartbeat(req: AgentHeartbeat):
         heartbeat(req.agent_id)
     except(KeyError):
         raise HTTPException(status_code=404, detail="Unknown agent")
+    
+    return {"status":"ok"}
+
+@app.post("/tasks")
+def assign_task(task: TaskCreate):
+    from state import agents
+
+    if task.agent_id not in agents:
+        raise HTTPException(status_code=404, detail="Agent not registered")
+    task_id = create_task(task.agent_id, task.payload, task.task_type )
+
+    return {"task_id": task_id, "status" : "pending"}
+
+
+@app.post("/reports")
+def report_task(report: ReportSubmit):
+    from state import agents, tasks, reports
+
+    if report.agent_id not in agents:
+        raise HTTPException(status_code=404, detail="Unknown agent")
+    
+    if report.task_id not in tasks:
+        raise HTTPException(status_code=404, detail="Unknown task")
+    
+    submit_report(report.agent_id, report.task_id, report.status, report.result)
     
     return {"status":"ok"}
