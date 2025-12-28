@@ -25,15 +25,24 @@ def agent_heartbeat(req: AgentHeartbeat):
     return {"status":"ok"}
 
 @app.post("/tasks")
-def assign_task(task: TaskCreate):
-    from state import agents
-
-    if task.agent_id not in agents:
-        raise HTTPException(status_code=404, detail="Agent not registered")
-    task_id = create_task(task.agent_id, task.payload, task.task_type )
-
+def create_task_endpoint(task: TaskCreate):
+    task_id = create_task(None, task.payload, task.task_type ) # No agent assigned upon task creation, the assign_task_to_agent deals with that.
     return {"task_id": task_id, "status" : "pending"}
 
+@app.post("/tasks/assign")
+def assign_task_to_agent(task_id:str, agent_id:str):
+    from state import agents, tasks
+
+    if agent_id not in agents:
+        raise HTTPException(status_code=404, detail="Agent not registered")
+    if agents[agent_id]["status"] != "online":
+        raise HTTPException(status_code=400, detail="Agent offline")
+    if tasks[task_id]["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Task not pending")
+
+    tasks[task_id]["assigned_agent_id"] = agent_id
+    tasks[task_id]["status"] = "running"
+    
 
 @app.post("/reports")
 def report_task(report: ReportSubmit):
@@ -45,6 +54,16 @@ def report_task(report: ReportSubmit):
     if report.task_id not in tasks:
         raise HTTPException(status_code=404, detail="Unknown task")
     
+    task = tasks[report.task_id]
+
+    if task.get("assigned_agent_id") != report.agent_id:
+        raise HTTPException(status_code=400, detail="Agent not assigned to this task")
+    if task["status"] != "running":
+        raise HTTPException(status_code=400, detail="Task not running")
+    if report.status not in ("completed", "failed"):
+        raise HTTPException(status_code=400, detail="Invalid report status")
+
+
     submit_report(report.agent_id, report.task_id, report.status, report.result)
     
     return {"status":"ok"}

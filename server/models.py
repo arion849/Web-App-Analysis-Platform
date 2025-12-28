@@ -12,7 +12,6 @@ class AgentHeartbeat(BaseModel):
 
 
 class TaskCreate(BaseModel):
-    agent_id: str
     task_type: str
     payload: Dict = {}
 
