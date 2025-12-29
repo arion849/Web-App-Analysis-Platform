@@ -7,6 +7,27 @@ from state import heartbeat, register_agent, create_task, submit_report
 
 app = FastAPI()
 
+
+
+@app.get("/agents")
+def list_agents():
+    from state import agents
+    return agents
+
+
+@app.get("/tasks")
+def list_tasks():
+    from state import tasks
+    return tasks
+
+
+@app.get("/reports")
+def list_reports():
+    from state import reports
+    return reports
+
+
+
 @app.post("/agents/register")
 def register(req: AgentRegistration ):
     try:
@@ -27,7 +48,7 @@ def agent_heartbeat(req: AgentHeartbeat):
 
 @app.post("/tasks")
 def create_task_endpoint(task: TaskCreate):
-    task_id = create_task(None, task.payload, task.task_type ) # No agent assigned upon task creation, the assign_task_to_agent deals with that.
+    task_id = create_task(task_type= task.task_type, payload=task.payload) # No agent assigned upon task creation, the assign_task_to_agent deals with that.
     return {"task_id": task_id, "status" : "pending"}
 
 @app.post("/tasks/assign")

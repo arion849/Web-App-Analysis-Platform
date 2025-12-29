@@ -101,7 +101,7 @@ def submit_report(agent_id:str, task_id: str, status:str, result:dict = {}) -> N
     ))
 
     tasks[task_id]["status"] = status
-    tasks["updated_at"]= time.time()
+    tasks[task_id]["updated_at"]= time.time()
 
 
 def timeout_heartbeat() -> None:
