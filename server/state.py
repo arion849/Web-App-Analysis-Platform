@@ -34,7 +34,7 @@ def heartbeat(agent_id:str) -> None:
         raise KeyError("Unknown agent")
     
     now = time.time()
-    agents[agent_id]["heartbeat"] = now
+    agents[agent_id]["last_heartbeat"] = now
     agents[agent_id]["status"] = "online"
 
 
@@ -43,7 +43,7 @@ def heartbeat(agent_id:str) -> None:
 class TaskStorage(TypedDict):
 
     task_id: str
-    assigned_agent_id: None
+    assigned_agent_id: str | None
     task_type: str
     payload: dict
     status: str     # pending/running/completed/failed
@@ -53,19 +53,22 @@ class TaskStorage(TypedDict):
 
 tasks: Dict[str, TaskStorage] = {}
 
-def create_task(agent_id: str, task_type:str = "default", payload: dict = {} ) -> str:
+def create_task( task_type:str = "default", payload: dict = {} ) -> str:
     task_id = str(uuid.uuid4())
 
     # Extra check to be sure that task_id is not in tasks.
     while task_id in tasks:
         task_id = str(uuid.uuid4())
 
+
     tasks[task_id] = TaskStorage(
         task_id = task_id,
-        agent_id = agent_id,
+        assigned_agent_id = None,
         task_type = task_type,
         payload = payload,
-        status = "pending"
+        status = "pending",
+        created_at= time.time(),
+        updated_at= time.time()
     )
 
     return task_id
@@ -91,11 +94,14 @@ def submit_report(agent_id:str, task_id: str, status:str, result:dict = {}) -> N
 
     reports.append(ReportStorage(
         agent_id = agent_id, 
-                   task_id = task_id, 
-                   status = status, 
-                   result = result, 
-                   timestamp = time.time()
+        task_id = task_id, 
+        status = status, 
+        result = result, 
+        timestamp = time.time(),
     ))
+
+    tasks[task_id]["status"] = status
+    tasks["updated_at"]= time.time()
 
 
 def timeout_heartbeat() -> None:

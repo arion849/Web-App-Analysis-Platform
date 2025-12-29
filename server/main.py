@@ -1,5 +1,6 @@
 # API routes
 
+import time
 from fastapi import FastAPI, HTTPException
 from models import AgentRegistration, AgentHeartbeat, TaskCreate, ReportSubmit
 from state import heartbeat, register_agent, create_task, submit_report
@@ -42,6 +43,9 @@ def assign_task_to_agent(task_id:str, agent_id:str):
 
     tasks[task_id]["assigned_agent_id"] = agent_id
     tasks[task_id]["status"] = "running"
+    tasks[task_id]["updated_at"] = time.time()
+
+    return {"task_id": task_id, "agent_id" : agent_id, "status": "running"}
     
 
 @app.post("/reports")
