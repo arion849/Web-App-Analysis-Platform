@@ -37,6 +37,7 @@ def register(req: AgentRegistration ):
     
     return{"status": "register"}
 
+
 @app.post("/agents/heartbeat")
 def agent_heartbeat(req: AgentHeartbeat):
     try:
@@ -46,10 +47,13 @@ def agent_heartbeat(req: AgentHeartbeat):
     
     return {"status":"ok"}
 
+
 @app.post("/tasks")
 def create_task_endpoint(task: TaskCreate):
     task_id = create_task(task_type= task.task_type, payload=task.payload) # No agent assigned upon task creation, the assign_task_to_agent deals with that.
     return {"task_id": task_id, "status" : "pending"}
+
+
 
 @app.post("/tasks/assign")
 def assign_task_to_agent(task_id:str, agent_id:str):

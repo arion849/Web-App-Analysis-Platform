@@ -1,4 +1,17 @@
-# in memory state
+"""
+In-memory state management for agents, tasks, and reports.
+
+This module deliberately avoids persistence (database, cache) in order to:
+- keep the MVP scope minimal
+- focus on agent coordination and failure handling
+- make trade-offs explicit for the assignment
+
+All state is lost on restart by design.
+"""
+
+
+
+
 
 from typing import Dict, TypedDict, List
 import time
@@ -10,6 +23,10 @@ class AgentState(TypedDict):
     last_heartbeat: float
     status: str     # offline/online
 
+
+
+# Stores registered agents and their liveness state.
+# Agent status is derived from heartbeat timestamps rather than explicit disconnects.
 
 agents: Dict[str, AgentState] = {}
 reports: list[dict] = []
@@ -29,6 +46,9 @@ def register_agent(agent_id: str) -> None:
     )
 
 
+# Updates agent liveness.
+#Heartbeats are treated as a soft signal; missed heartbeats are handled separately by timeout_heartbeat rather than immediate failure.
+
 def heartbeat(agent_id:str) -> None:
     if agent_id not in agents:
         raise KeyError("Unknown agent")
@@ -38,6 +58,10 @@ def heartbeat(agent_id:str) -> None:
     agents[agent_id]["status"] = "online"
 
 
+
+# Task storage.
+# Tasks are created in a pending state and explicitly assigned to agents.
+# No automatic scheduling is implemented to keep responsibility explicit.
 
 
 class TaskStorage(TypedDict):
@@ -73,6 +97,11 @@ def create_task( task_type:str = "default", payload: dict = {} ) -> str:
 
     return task_id
 
+
+# Reports are append-only to preserve execution history.
+# Task state is updated separately for simplicity.
+
+
 class ReportStorage(TypedDict):
     agent_id: str
     task_id: str
@@ -103,6 +132,10 @@ def submit_report(agent_id:str, task_id: str, status:str, result:dict = {}) -> N
     tasks[task_id]["status"] = status
     tasks[task_id]["updated_at"]= time.time()
 
+
+# Periodic liveness check.
+# If an agent misses heartbeats for longer than the timeout window, it is marked offline instead of being removed.
+# This models partial failure handling common in distributed systems.
 
 def timeout_heartbeat() -> None:
     now: float = time.time()
